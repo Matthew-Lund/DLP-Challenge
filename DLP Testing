@@ -1,0 +1,72 @@
+from math import ceil, sqrt
+import time
+from multiprocessing import Pool
+
+#modular exponention expression
+def mod_exp(base, exp, mod):
+    result = 1
+    base = base % mod
+
+    while exp > 0:
+        if exp % 2 == 1:
+            result = (result * base) % mod
+        exp = exp // 2
+        base = (base * base) % mod
+
+    return result
+
+def bs_gs_worker(args):
+    a, b, p, start, end = args
+
+    N = int(ceil(sqrt(p - 1)))
+    tbl = {pow(a, i, p): i for i in range(N)}
+    c = pow(a, N * (p - 2), p)
+
+    def pow_mod(base, exp):
+        return mod_exp(base, exp, p)
+
+    for j in range(start, end):
+        y = (b * pow_mod(c, j)) % p
+        if y in tbl:
+            return j * N + tbl[y]
+
+    return None
+
+def bs_gs(a, b, p, num_processes=8):
+    N = int(ceil(sqrt(p - 1)))
+
+    pool = Pool(processes=num_processes)
+
+    args_list = []
+    chunk_size = N // num_processes
+
+    for i in range(num_processes):
+        start = i * chunk_size
+        end = (i + 1) * chunk_size if i != num_processes - 1 else N
+        args_list.append((a, b, p, start, end))
+
+    results = pool.map(bs_gs_worker, args_list)
+
+    pool.close()
+    pool.join()
+
+    for result in results:
+        if result is not None:
+            return result
+
+    return None
+
+if __name__ == '__main__':
+# Solve for x
+#40 bits implementation
+    a = 3
+    b = 259893785866906004
+    p = 2305843009213699919
+
+    print(a, b, p)
+    start = time.time()
+    x = bs_gs(a,b,p)
+    execution_time = time.time()
+    elapsed = execution_time - start
+    print(x)
+    print('Execution Time (seconds):', elapsed)
